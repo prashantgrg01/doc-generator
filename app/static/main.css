@@ -1,0 +1,41 @@
+/* Main CSS */
+/*
+color1: #F96E46
+color2: #FFE3E3
+color3: #545863
+color4: #F9C846
+color5: #00E8FC
+*/
+
+.text-info {
+  color: #F96E46 !important;
+}
+.btn-info {
+  background-color: #F96E46;
+  border-color: #F96E46;
+}
+.btn-info:hover, 
+.btn-info:active,
+.btn-info:not(:disabled):not(.disabled):active,
+.btn-info:focus {
+  background-color: #F98E46;
+  border-color: #F98E46;
+}
+.btn-info:focus {
+  box-shadow: none;
+}
+.btn-outline-info {
+  border-color: #F96E46;
+  color: #F96E46;
+}
+.btn-outline-info:hover, 
+.btn-outline-info:active,
+.btn-outline-info:not(:disabled):not(.disabled):active,
+.btn-outline-info:focus {
+  background-color: #F96E46;
+  border-color: #F96E46;
+  color: #fff;
+}
+.btn-outline-info:focus {
+  box-shadow: none;
+}

@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<section class="container">
+  <h1 class="text-center my-5 text-info">New Invoice</h1>
+  <form method="POST" action="" style="max-width: 30rem; margin: auto">
+    {{ data.form.hidden_tag() }}
+    <fieldset class="form-group p-4" style="border: 1px solid #ddd">
+      <div class="form-group">
+        <!-- Show client_name field label -->
+        {{ data.form.client_name.label(class="form-control-label") }}
+        <!-- Show client_name field -->
+        {% if data.form.client_name.errors %}
+          {{ data.form.client_name(class="form-control is-invalid") }}
+          <div class="invalid-feedback">
+            {% for error in data.form.client_name.errors %}
+              <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ data.form.client_name(class="form-control") }}
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <!-- Show client_email field label -->
+        {{ data.form.client_email.label(class="form-control-label") }}
+        <!-- Show client_email field -->
+        {% if data.form.client_email.errors %}
+          {{ data.form.client_email(class="form-control is-invalid") }}
+          <div class="invalid-feedback">
+            {% for error in data.form.client_email.errors %}
+              <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ data.form.client_email(class="form-control") }}
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <!-- Show client_address field label -->
+        {{ data.form.client_address.label(class="form-control-label") }}
+        <!-- Show client_address field -->
+        {% if data.form.client_address.errors %}
+          {{ data.form.client_address(class="form-control is-invalid") }}
+          <div class="invalid-feedback">
+            {% for error in data.form.client_address.errors %}
+              <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ data.form.client_address(class="form-control") }}
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <!-- Show item_description field label -->
+        {{ data.form.item_description.label(class="form-control-label") }}
+        <!-- Show item_description field -->
+        {% if data.form.item_description.errors %}
+          {{ data.form.item_description(class="form-control is-invalid") }}
+          <div class="invalid-feedback">
+            {% for error in data.form.item_description.errors %}
+              <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ data.form.item_description(class="form-control") }}
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <!-- Show item_cost field label -->
+        {{ data.form.item_cost.label(class="form-control-label") }}
+        <!-- Show item_cost field -->
+        {% if data.form.item_cost.errors %}
+          {{ data.form.item_cost(class="form-control is-invalid") }}
+          <div class="invalid-feedback">
+            {% for error in data.form.item_cost.errors %}
+              <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ data.form.item_cost(class="form-control") }}
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <!-- Show submit field -->
+        {{ data.form.submit(class="form-control btn-info") }}
+      </div>
+    </fieldset>
+  </form>
+</section>
+{% endblock %}

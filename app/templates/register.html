@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<section class="container">
+  <h1 class="text-center my-5 text-info">Add New User</h1>
+  <form method="POST" action="" style="max-width: 30rem; margin: auto">
+    {{ data.form.hidden_tag() }}
+    <fieldset class="form-group p-4" style="border: 1px solid #ddd">
+      <div class="form-group">
+        <!-- Show username field label -->
+        {{ data.form.username.label(class="form-control-label") }}
+        <!-- Show username field -->
+        {% if data.form.username.errors %}
+          {{ data.form.username(class="form-control is-invalid") }}
+          <div class="invalid-feedback">
+            {% for error in data.form.username.errors %}
+              <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ data.form.username(class="form-control") }}
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <!-- Show email field label -->
+        {{ data.form.email.label(class="form-control-label") }}
+        <!-- Show email field -->
+        {% if data.form.email.errors %}
+          {{ data.form.email(class="form-control is-invalid") }}
+          <div class="invalid-feedback">
+            {% for error in data.form.email.errors %}
+              <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ data.form.email(class="form-control") }}
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <!-- Show password field label -->
+        {{ data.form.password.label(class="form-control-label") }}
+        <!-- Show password field -->
+        {% if data.form.password.errors %}
+          {{ data.form.password(class="form-control is-invalid") }}
+          <div class="invalid-feedback">
+            {% for error in data.form.password.errors %}
+              <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ data.form.password(class="form-control") }}
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <!-- Show confirm password field label -->
+        {{ data.form.confirm_password.label(class="form-control-label") }}
+        <!-- Show confirm password field -->
+        {% if data.form.confirm_password.errors %}
+          {{ data.form.confirm_password(class="form-control is-invalid") }}
+          <div class="invalid-feedback">
+            {% for error in data.form.confirm_password.errors %}
+              <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ data.form.confirm_password(class="form-control") }}
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <!-- Show submit field -->
+        {{ data.form.submit(class="form-control btn-info") }}
+      </div>
+    </fieldset>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1 class="text-center my-5 text-info">Invoice List</h1>
+
+<!-- <h3 class="mb-3">Invoice List</h3> -->
+<a href="{{ url_for('new_invoice') }}" class="btn btn-sm btn-info mb-4">New Invoice</a>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Invoice ID</th>
+      <th>Client Name</th>
+      <th>Client Business</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>10001</td>
+      <td>Prashant Gurung</td>
+      <td>My Company</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>10002</td>
+      <td>Rajesh Adhikari</td>
+      <td>Softtech Multimedia</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+{% endblock %}
