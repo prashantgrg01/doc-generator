@@ -22,6 +22,21 @@
         {% endif %}
       </div>
       <div class="form-group">
+        <!-- Show client_business field label -->
+        {{ data.form.client_business.label(class="form-control-label") }}
+        <!-- Show client_business field -->
+        {% if data.form.client_business.errors %}
+          {{ data.form.client_business(class="form-control is-invalid") }}
+          <div class="invalid-feedback">
+            {% for error in data.form.client_business.errors %}
+              <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ data.form.client_business(class="form-control") }}
+        {% endif %}
+      </div>
+      <div class="form-group">
         <!-- Show client_email field label -->
         {{ data.form.client_email.label(class="form-control-label") }}
         <!-- Show client_email field -->
@@ -51,41 +66,76 @@
           {{ data.form.client_address(class="form-control") }}
         {% endif %}
       </div>
-      <div class="form-group">
-        <!-- Show item_description field label -->
-        {{ data.form.item_description.label(class="form-control-label") }}
-        <!-- Show item_description field -->
-        {% if data.form.item_description.errors %}
-          {{ data.form.item_description(class="form-control is-invalid") }}
-          <div class="invalid-feedback">
-            {% for error in data.form.item_description.errors %}
-              <span>{{ error }}</span>
-            {% endfor %}
+
+      <section id="invoice-item-forms-container">
+        <hr>
+        {% for invoice_item_form in data.form.invoice_items %}
+          <div id="invoice_item-{{ loop.index0 }}-form" class="invoice-item-form" data-index="{{ loop.index0 }}">
+            <div class="form-group">
+              <!-- Show item_description field label -->
+              {{ invoice_item_form.item_description.label(class="form-control-label") }}
+              <!-- Show item_description field -->
+              {% if invoice_item_form.item_description.errors %}
+                {{ invoice_item_form.item_description(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                  {% for error in invoice_item_form.item_description.errors %}
+                    <span>{{ error }}</span>
+                  {% endfor %}
+                </div>
+              {% else %}
+                {{ invoice_item_form.item_description(class="form-control") }}
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <!-- Show item_cost field label -->
+              {{ invoice_item_form.item_cost.label(class="form-control-label") }}
+              <!-- Show item_cost field -->
+              {% if invoice_item_form.item_cost.errors %}
+                {{ invoice_item_form.item_cost(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                  {% for error in invoice_item_form.item_cost.errors %}
+                    <span>{{ error }}</span>
+                  {% endfor %}
+                </div>
+              {% else %}
+                {{ invoice_item_form.item_cost(class="form-control") }}
+              {% endif %}
+            </div>
           </div>
-        {% else %}
-          {{ data.form.item_description(class="form-control") }}
-        {% endif %}
+        {% endfor %}
+        <hr>
+      </section>
+
+      <!-- Add New Invoice Item Form Button -->
+      <div class="form-group text-right">
+        <button id="add-invoice-item-form" class="btn btn-secondary btn-sm">Add New Item</button>
       </div>
-      <div class="form-group">
-        <!-- Show item_cost field label -->
-        {{ data.form.item_cost.label(class="form-control-label") }}
-        <!-- Show item_cost field -->
-        {% if data.form.item_cost.errors %}
-          {{ data.form.item_cost(class="form-control is-invalid") }}
-          <div class="invalid-feedback">
-            {% for error in data.form.item_cost.errors %}
-              <span>{{ error }}</span>
-            {% endfor %}
-          </div>
-        {% else %}
-          {{ data.form.item_cost(class="form-control") }}
-        {% endif %}
-      </div>
+
       <div class="form-group">
         <!-- Show submit field -->
         {{ data.form.submit(class="form-control btn-info") }}
       </div>
     </fieldset>
   </form>
+
+  <!-- Invoice Item Form Template -->
+  <div id="invoice_item-__-form" class="is-hidden" data-index="__">
+    <div class="form-group">
+      <!-- Show item_description field label -->
+      <label class="form-control-label" for="invoice_items-__-item_description">Item Description</label>
+      <!-- Show item_description field -->
+      <input class="form-control" id="invoice_items-__-item_description" name="invoice_items-__-item_description" required type="text" value="">
+    </div>
+    <div class="form-group">
+      <!-- Show item_cost field label -->
+      <label class="form-control-label" for="invoice_items-__-item_cost">Item Cost</label>
+      <!-- Show item_cost field -->
+      <input class="form-control" id="invoice_items-__-item_cost" name="invoice_items-__-item_cost" required type="text" value="">
+    </div>
+    <button class="remove btn btn-danger btn-sm">Remove</button>
+    <hr>
+  </div>
+  <!-- End of Invoice Item Form Template -->
+
 </section>
 {% endblock %}

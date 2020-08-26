@@ -13,6 +13,7 @@ class User(db.Model, UserMixin):
   email = db.Column(db.String(120), unique=True, nullable=False)
   password = db.Column(db.String(100), nullable=False)
   profile_image = db.Column(db.String(120), nullable=False, default="default.jpg")
+  invoices = db.relationship("Invoice", backref="user", lazy=True)
 
   def __repr__(self):
     return f"User('{self.username}', '{self.email}', '{self.profile_image}')"
@@ -21,23 +22,28 @@ class User(db.Model, UserMixin):
 class Invoice(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   client_name = db.Column(db.String(100), nullable=False)
+  client_business = db.Column(db.String(200), nullable=False)
   client_email = db.Column(db.String(100), nullable=False)
   client_address = db.Column(db.String(200), nullable=False)
-  issue_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
+  issue_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
   due_date = db.Column(db.String(100), nullable=False, default="On Receipt")
   sub_total = db.Column(db.Integer, nullable=False, default=0)
   gst_total = db.Column(db.Integer, nullable=False, default=0)
   invoice_total = db.Column(db.Integer, nullable=False, default=0)
-  row_contents = db.relationship("InvoiceRowContent", backref="invoice", lazy=True)
+  invoice_items = db.relationship("InvoiceItem", backref="invoice", lazy=True)
+  user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
   def __repr__(self):
-    return f"Invoice('{self.id}', '{self.client_name}', '{self.issued_date}')"
+    return f"Invoice('{self.id}', '{self.client_name}', '{self.issue_date}')"
 
-# Invoice Row Content Model
-class InvoiceRowContent(db.Model):
+# Invoice Item Model
+class InvoiceItem(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   description = db.Column(db.String(200), nullable=False)
-  total_cost = db.Column(db.Integer, nullable=False)
-  invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)
+  cost = db.Column(db.Integer, nullable=False)
+  invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=True)
+
+  def __repr__(self):
+    return f"InvoiceItem('{self.id}', '{self.description}', '{self.cost}')"
 
 

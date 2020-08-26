@@ -1,10 +1,11 @@
-from flask import render_template, url_for, redirect, flash, request, abort
+import os
+from flask import render_template, url_for, redirect, flash, request, abort, send_from_directory
 from flask_login import login_user, logout_user, current_user, login_required
 from docxtpl import DocxTemplate
 from datetime import datetime
 from app import app, db, bcrypt
 from app.forms import RegistrationForm, LoginForm, InvoiceForm
-from app.models import User, Invoice, InvoiceRowContent
+from app.models import User, Invoice, InvoiceItem
 
 # Homepage Route
 @app.route("/")
@@ -17,7 +18,7 @@ def about():
   return render_template("about.html")
 
 # New User Registration Route
-@app.route("/users/add", methods=["GET", "POST"])
+@app.route("/users/new", methods=["GET", "POST"])
 def register_user():
   form = RegistrationForm()
   if form.validate_on_submit():
@@ -30,7 +31,7 @@ def register_user():
     db.session.commit()
     # Show the new user created success message and redirect them to the login page
     flash(f"Account created successfully for {form.username.data}!", "success")
-    return redirect(url_for("dashboard"))
+    return redirect(url_for("login"))
   return render_template("register.html", data={ "form": form })
 
 # Login Route
@@ -68,14 +69,18 @@ def logout():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-  users = User.query.all()
-  return render_template("dashboard.html", data={ "users": users })
+  invoices = Invoice.query.all()
+  return render_template("dashboard.html", data={ "invoices": invoices })
 
 # Invoices Dashboard Route
-@app.route("/invoices")
+@app.route("/invoices/")
 @login_required
 def invoice_dashboard():
-  return render_template("invoice_dashboard.html", data={ })
+  invoices = Invoice.query.order_by(Invoice.issue_date.desc()).all()
+  # Amend the invoice id for display
+  for invoice in invoices:
+    invoice.id = invoice.id + 10000
+  return render_template("invoice_dashboard.html", data={ "invoices": invoices })
 
 # New Invoice Route
 @app.route("/invoices/new", methods=["GET", "POST"])
@@ -85,56 +90,85 @@ def new_invoice():
   if form.validate_on_submit():
     # Get all the values from the form fields
     client_name = form.client_name.data
+    client_business = form.client_business.data
     client_email = form.client_email.data
     client_address = form.client_address.data
-    item_description = form.item_description.data
-    item_cost = form.item_cost.data
-    
-    # Create new row content
-    # row_content = InvoiceRowContent(description=item_description, total_cost=item_cost)
-    # db.session.add(row_content)
-
-    # Calculate subtotal, gst and total
-    sub_total = item_cost
-    gst_total = int(0.1 * sub_total)
-    invoice_total = item_cost
 
     # Create new invoice
-    # invoice = Invoice(client_name=client_name, client_email=client_email, client_address=client_address, sub_total=sub_total, gst_total=gst_total, invoice_total=invoice_total, row_contents=list(row_content))
-    # db.session.add(invoice)
+    invoice = Invoice(client_name=client_name, client_business=client_business, client_email=client_email, client_address=client_address, user=current_user)
+    db.session.add(invoice)
+    db.session.commit()
 
-    # db.session.commit()
+    # Initialize sub_total
+    sub_total = 0
+    # Loop through all the invoice_items in the form
+    for invoice_item in form.invoice_items.data:
+      # Create new invoice item
+      new_invoice_item = InvoiceItem(description=invoice_item["item_description"], cost=invoice_item["item_cost"], invoice=invoice)
+      db.session.add(new_invoice_item)
+      db.session.commit()
+      # Add item to our sub_total
+      sub_total += int(invoice_item["item_cost"])
 
-    # Create row contents for our document context
-    row_contents = [
-      {
-        "description": item_description,
-        "total_cost": "$" + str(format(item_cost, ".2f"))
-      }
-    ]
+    # Update sub_total, gst_total and invoice_total for the current invoice
+    invoice.sub_total = sub_total
+    invoice.gst_total = int(0.1 * sub_total)
+    invoice.invoice_total = sub_total
+    db.session.commit()
 
-    # Create our document context
-    context = { 
-      "invoice_id": str(1 + 10000),
-      "client_name": client_name,
-      "client_email": client_email,
-      "client_address": client_address,
-      "issue_date": datetime.utcnow().strftime("%B %d, %Y"),
-      "due_date": "On Receipt",
-      "row_contents": row_contents,
-      "sub_total": "$" + str(format(sub_total, ".2f")),
-      "gst_total": "$" + str(format(gst_total, ".2f")),
-      "invoice_total": "$" + str(format(invoice_total, ".2f"))
-    }
+    # Generate and save the invoice to a temporary folder
+    generate_and_save_invoice(invoice)
 
-    # Open the document template
-    document = DocxTemplate("app/doc_templates/invoice_template.docx")
-    # Render the context by integrating it with the document template
-    document.render(context)
-    # Save the document
-    document.save("app/generated_docs/new_invoice.docx")
     # Show the invoice created message
     flash(f"New invoice generated!", "success")
     return redirect(url_for("invoice_dashboard"))
   return render_template("new_invoice.html", data={ "form": form })
 
+# Function to generate and save invoice
+def generate_and_save_invoice(invoice):
+  # Create invoice items for our document context
+  invoice_items = []
+  for item in invoice.invoice_items:
+    invoice_item = {
+      "description": item.description,
+      "total_cost": "$" + str(format(item.cost, ".2f"))
+    }
+    invoice_items.append(invoice_item)
+
+  # Create our document context
+  context = { 
+    "invoice_id": str(invoice.id + 10000),
+    "client_name": invoice.client_name,
+    "client_email": invoice.client_email,
+    "client_address": invoice.client_address,
+    "issue_date": invoice.issue_date.strftime("%B %d, %Y"),
+    "due_date": "On Receipt",
+    "row_contents": invoice_items,
+    "sub_total": "$" + str(format(invoice.sub_total, ".2f")),
+    "gst_total": "$" + str(format(invoice.gst_total, ".2f")),
+    "invoice_total": "$" + str(format(invoice.invoice_total, ".2f"))
+  }
+
+  # Open the document template
+  document = DocxTemplate("app/doc_templates/invoice_template.docx")
+  # Render the document template by integrating it with our document context 
+  document.render(context)
+  # Save the document
+  document.save("app/generated_docs/invoice_" + str(invoice.id + 10000) + ".docx")
+
+# Download Generated Invoice Route
+@app.route("/invoices/generated/<int:invoice_id>")
+def download_invoice(invoice_id):
+  # Create the invoice filename
+  filename = "invoice_" + str(invoice_id) + ".docx"
+  try:
+    # Check if the invoice already exists
+    if not os.path.exists(app.config["INVOICE_FOLDER"] + filename):
+      # Retreve the invoice details from the database based on the invoice id
+      invoice = Invoice.query.get(int(invoice_id) - 10000)
+      # Generate and save the invoice to a temporary folder
+      generate_and_save_invoice(invoice)
+    # Send the file to the user
+    return send_from_directory(app.config["INVOICE_FOLDER"], filename=filename, as_attachment=True)
+  except FileNotFoundError:
+    abort(404)

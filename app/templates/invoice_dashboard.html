@@ -11,23 +11,21 @@
     <tr>
       <th>Invoice ID</th>
       <th>Client Name</th>
-      <th>Client Business</th>
+      <th>Issue Date</th>
+      <th>Created By</th>
       <th>Actions</th>
     </tr>
   </thead>
   <tbody>
+    {% for invoice in data.invoices %}
     <tr>
-      <td>10001</td>
-      <td>Prashant Gurung</td>
-      <td>My Company</td>
-      <td></td>
+      <td>{{ invoice.id }}</td>
+      <td>{{ invoice.client_name }}</td>
+      <td>{{ invoice.issue_date.strftime("%B %d, %Y") }}</td>
+      <td>{{ invoice.user.username }}</td>
+      <td><a href="{{ url_for('download_invoice', invoice_id=invoice.id) }}" class="btn btn-info btn-sm">Download Invoice</a></td>
     </tr>
-    <tr>
-      <td>10002</td>
-      <td>Rajesh Adhikari</td>
-      <td>Softtech Multimedia</td>
-      <td></td>
-    </tr>
+    {% endfor %}
   </tbody>
 </table>
 {% endblock %}

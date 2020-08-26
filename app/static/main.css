@@ -39,3 +39,12 @@ color5: #00E8FC
 .btn-outline-info:focus {
   box-shadow: none;
 }
+
+/* Add New Invoice Form Styles */
+.is-hidden {
+  display: none;
+}
+#invoice-item-forms-container {
+  margin-top: 1.5rem;
+  margin-bottom: 1.25rem;
+}
