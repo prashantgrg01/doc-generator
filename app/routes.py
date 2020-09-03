@@ -1,11 +1,11 @@
 import os
-from flask import render_template, url_for, redirect, flash, request, abort, send_from_directory
+from flask import render_template, url_for, redirect, flash, request, abort, send_from_directory, jsonify
 from flask_login import login_user, logout_user, current_user, login_required
 from docxtpl import DocxTemplate
 from datetime import datetime
 from app import app, db, bcrypt
-from app.forms import RegistrationForm, LoginForm, InvoiceForm
-from app.models import User, Invoice, InvoiceItem
+from app.forms import RegistrationForm, LoginForm, NewClientForm, EditClientForm, InvoiceForm, ReceiptForm
+from app.models import User, Client, Invoice, InvoiceItem, Receipt
 
 # Homepage Route
 @app.route("/")
@@ -18,7 +18,7 @@ def about():
   return render_template("about.html")
 
 # New User Registration Route
-@app.route("/users/new", methods=["GET", "POST"])
+@app.route("/user/new", methods=["GET", "POST"])
 def register_user():
   form = RegistrationForm()
   if form.validate_on_submit():
@@ -59,7 +59,7 @@ def login():
   return render_template("login.html", data={ "form": form })
 
 # Logout Route
-@app.route("/logout", methods=["GET", "POST"])
+@app.route("/logout")
 @login_required
 def logout():
   logout_user()
@@ -69,11 +69,64 @@ def logout():
 @app.route("/dashboard")
 @login_required
 def dashboard():
+  clients = Client.query.all()
   invoices = Invoice.query.all()
-  return render_template("dashboard.html", data={ "invoices": invoices })
+  receipts = Receipt.query.all()
+  return render_template("dashboard.html", data={ "clients": clients, "invoices": invoices, "receipts": receipts })
+
+# Client Dashboard Route
+@app.route("/client/")
+@login_required
+def client_dashboard():
+  clients = Client.query.order_by(Client.created_on.desc()).all()
+  # Amend the client id for display
+  for client in clients:
+    client.id = client.id + 10000
+  return render_template("client_dashboard.html", data={ "clients": clients })
+
+# New Client Registration Route
+@app.route("/client/new", methods=["GET", "POST"])
+def new_client():
+  form = NewClientForm()
+  if form.validate_on_submit():
+    # Create new client
+    new_client = Client(name=form.name.data, business=form.business.data, email=form.email.data, address=form.address.data)
+    # Save the new client to the database
+    db.session.add(new_client)
+    db.session.commit()
+    # Show the new client created success message and redirect them to the client dashboard
+    flash(f"New client {form.name.data} added!", "success")
+    return redirect(url_for("client_dashboard"))
+  return render_template("new_client.html", data={ "form": form })
+
+# Edit Client Route
+@app.route("/client/edit/<int:client_id>", methods=["GET", "POST"])
+def edit_client(client_id):
+  # Calculate the client id
+  client_id = client_id - 10000
+  # Retrive the associated client from the database
+  client = Client.query.get_or_404(client_id)
+
+  form = EditClientForm()
+  if form.validate_on_submit():
+    # Update the client with new field values
+    client.name = form.name.data
+    client.business = form.business.data
+    client.email = form.email.data
+    client.address = form.address.data
+    # Save the updated client to the database
+    db.session.commit()
+    # Show the new client created success message and redirect them to the client dashboard
+    flash(f"Client details updated successfully!", "success")
+  elif request.method == "GET":
+    form.name.data = client.name
+    form.business.data = client.business
+    form.email.data = client.email
+    form.address.data = client.address
+  return render_template("edit_client.html", data={ "form": form })
 
 # Invoices Dashboard Route
-@app.route("/invoices/")
+@app.route("/invoice/")
 @login_required
 def invoice_dashboard():
   invoices = Invoice.query.order_by(Invoice.issue_date.desc()).all()
@@ -81,48 +134,6 @@ def invoice_dashboard():
   for invoice in invoices:
     invoice.id = invoice.id + 10000
   return render_template("invoice_dashboard.html", data={ "invoices": invoices })
-
-# New Invoice Route
-@app.route("/invoices/new", methods=["GET", "POST"])
-@login_required
-def new_invoice():
-  form = InvoiceForm()
-  if form.validate_on_submit():
-    # Get all the values from the form fields
-    client_name = form.client_name.data
-    client_business = form.client_business.data
-    client_email = form.client_email.data
-    client_address = form.client_address.data
-
-    # Create new invoice
-    invoice = Invoice(client_name=client_name, client_business=client_business, client_email=client_email, client_address=client_address, user=current_user)
-    db.session.add(invoice)
-    db.session.commit()
-
-    # Initialize sub_total
-    sub_total = 0
-    # Loop through all the invoice_items in the form
-    for invoice_item in form.invoice_items.data:
-      # Create new invoice item
-      new_invoice_item = InvoiceItem(description=invoice_item["item_description"], cost=invoice_item["item_cost"], invoice=invoice)
-      db.session.add(new_invoice_item)
-      db.session.commit()
-      # Add item to our sub_total
-      sub_total += int(invoice_item["item_cost"])
-
-    # Update sub_total, gst_total and invoice_total for the current invoice
-    invoice.sub_total = sub_total
-    invoice.gst_total = int(0.1 * sub_total)
-    invoice.invoice_total = sub_total
-    db.session.commit()
-
-    # Generate and save the invoice to a temporary folder
-    generate_and_save_invoice(invoice)
-
-    # Show the invoice created message
-    flash(f"New invoice generated!", "success")
-    return redirect(url_for("invoice_dashboard"))
-  return render_template("new_invoice.html", data={ "form": form })
 
 # Function to generate and save invoice
 def generate_and_save_invoice(invoice):
@@ -138,9 +149,9 @@ def generate_and_save_invoice(invoice):
   # Create our document context
   context = { 
     "invoice_id": str(invoice.id + 10000),
-    "client_name": invoice.client_name,
-    "client_email": invoice.client_email,
-    "client_address": invoice.client_address,
+    "client_name": invoice.client.name,
+    "client_email": invoice.client.email,
+    "client_address": invoice.client.address,
     "issue_date": invoice.issue_date.strftime("%B %d, %Y"),
     "due_date": "On Receipt",
     "row_contents": invoice_items,
@@ -154,21 +165,175 @@ def generate_and_save_invoice(invoice):
   # Render the document template by integrating it with our document context 
   document.render(context)
   # Save the document
-  document.save("app/generated_docs/invoice_" + str(invoice.id + 10000) + ".docx")
+  document.save("app/generated_docs/invoices/invoice_" + str(invoice.id + 10000) + ".docx")
+
+# New Invoice Route
+@app.route("/invoice/new", methods=["GET", "POST"])
+@login_required
+def new_invoice():
+  # Initialize the invoice form
+  form = InvoiceForm()
+  # Get the list of all the clients from the database
+  clients = Client.query.order_by(Client.created_on.desc()).all()
+  # Dynamically assign the choices for the client field of the invoice
+  form.client_id.choices = [(c.id, c.name) for c in clients]
+
+  if form.validate_on_submit():
+    # Get the client id from the form fields
+    client_id = form.client_id.data
+    client = Client.query.get(client_id)
+
+    # Create new invoice
+    invoice = Invoice(client=client, user=current_user)
+    db.session.add(invoice)
+    db.session.commit()
+
+    # Initialize sub_total
+    sub_total = 0
+    # Loop through all the invoice_items in the form
+    for invoice_item in form.invoice_items.data:
+      # Create new invoice item
+      new_invoice_item = InvoiceItem(description=invoice_item["item_description"], cost=invoice_item["item_cost"], invoice=invoice)
+      db.session.add(new_invoice_item)
+      db.session.commit()
+      # Add item to our sub_total
+      sub_total += int(invoice_item["item_cost"])
+
+    # Update sub_total, 10% gst_total and invoice_total for the current invoice
+    invoice.sub_total = sub_total
+    invoice.gst_total = int(0.1 * sub_total)
+    invoice.invoice_total = sub_total
+    db.session.commit()
+
+    # Generate and save the invoice to a temporary folder
+    generate_and_save_invoice(invoice)
+
+    # Show the invoice created message
+    flash(f"New invoice generated!", "success")
+    return redirect(url_for("invoice_dashboard"))
+  return render_template("new_invoice.html", data={ "form": form, "clients": clients })
 
 # Download Generated Invoice Route
-@app.route("/invoices/generated/<int:invoice_id>")
+@app.route("/invoice/download/<int:invoice_id>")
 def download_invoice(invoice_id):
   # Create the invoice filename
   filename = "invoice_" + str(invoice_id) + ".docx"
   try:
     # Check if the invoice already exists
     if not os.path.exists(app.config["INVOICE_FOLDER"] + filename):
-      # Retreve the invoice details from the database based on the invoice id
+      # Retrieve the invoice details from the database based on the invoice id
       invoice = Invoice.query.get(int(invoice_id) - 10000)
       # Generate and save the invoice to a temporary folder
       generate_and_save_invoice(invoice)
     # Send the file to the user
     return send_from_directory(app.config["INVOICE_FOLDER"], filename=filename, as_attachment=True)
+  except FileNotFoundError:
+    abort(404)
+
+# Receipts Dashboard Route
+@app.route("/receipt/")
+@login_required
+def receipt_dashboard():
+  receipts = Receipt.query.order_by(Receipt.issue_date.desc()).all()
+  # Amend the receipt id for display
+  for receipt in receipts:
+    receipt.id = receipt.id + 10000
+  return render_template("receipt_dashboard.html", data={ "receipts": receipts })
+
+# New Receipt Route
+@app.route("/receipt/new", methods=["GET", "POST"])
+@login_required
+def new_receipt():
+  # Initialize the receipt form
+  form = ReceiptForm()
+
+  # Get the list of all the clients from the database
+  clients = Client.query.order_by(Client.created_on.desc()).all()
+  # Dynamically assign the choices for the client field of the receipt
+  form.client_id.choices = [(c.id, c.name) for c in clients]
+
+  # Used form.submit.data instead of form.validate_on_submit() due to a weird validation issue with the invoice field selection 
+  if form.submit.data:
+    # Get the client id and invoice id from the form fields
+    client_id = form.client_id.data
+    client = Client.query.get(client_id)
+    invoice_id = form.invoice_id.data
+    invoice = Invoice.query.get(invoice_id)
+
+    # Create new receipt
+    receipt = Receipt(payment_date=form.payment_date.data, invoice=invoice, client=client, user=current_user)
+    db.session.add(receipt)
+    db.session.commit()
+
+    # Generate and save the receipt to a temporary folder
+    generate_and_save_receipt(receipt)
+
+    # Show the receipt created message
+    flash(f"New receipt generated!", "success")
+    return redirect(url_for("receipt_dashboard"))
+  return render_template("new_receipt.html", data={ "form": form, "clients": clients })
+
+# API for Receipt Invoice Options
+@app.route("/api/client/<int:client_id>/invoices", methods=["GET"])
+@login_required
+def receipt_options(client_id):
+  # Get the list of all the invoices for the given client
+  client = Client.query.get_or_404(client_id)
+  # Create a list of invoice options for the given client
+  invoice_options = []
+  for invoice in client.invoices:
+    label = "#" + str(invoice.id + 10000) + " - "
+    for invoice_item in invoice.invoice_items:
+      label += invoice_item.description + ", "
+    invoice_options.append({ "id": invoice.id, "label": label[:-2] })
+  return jsonify({ "options": invoice_options })
+
+# Function to generate and save receipt
+def generate_and_save_receipt(receipt):
+  # Create invoice items for our document context
+  invoice_items = []
+  for item in receipt.invoice.invoice_items:
+    invoice_item = {
+      "id": str(receipt.invoice.id + 10000),
+      "description": item.description,
+      "total_cost": "$" + str(format(item.cost, ".2f"))
+    }
+    invoice_items.append(invoice_item)
+
+  # Create our document context
+  context = { 
+    "receipt_id": str(receipt.id + 10000),
+    "client_name": receipt.client.name,
+    "client_email": receipt.client.email,
+    "client_address": receipt.client.address,
+    "issue_date": receipt.issue_date.strftime("%B %d, %Y"),
+    "payment_date": receipt.payment_date.strftime("%B %d, %Y"),
+    "row_contents": invoice_items,
+    "sub_total": "$" + str(format(receipt.invoice.sub_total, ".2f")),
+    "gst_total": "$" + str(format(receipt.invoice.gst_total, ".2f")),
+    "invoice_total": "$" + str(format(receipt.invoice.invoice_total, ".2f"))
+  }
+
+  # Open the document template
+  document = DocxTemplate("app/doc_templates/receipt_template.docx")
+  # Render the document template by integrating it with our document context 
+  document.render(context)
+  # Save the document
+  document.save("app/generated_docs/receipts/receipt_" + str(receipt.id + 10000) + ".docx")
+
+# Download Generated Receipt Route
+@app.route("/receipt/download/<int:receipt_id>")
+def download_receipt(receipt_id):
+  # Create the receipt filename
+  filename = "receipt_" + str(receipt_id) + ".docx"
+  try:
+    # Check if the receipt already exists
+    if not os.path.exists(app.config["RECEIPT_FOLDER"] + filename):
+      # Retrieve the receipt details from the database based on the receipt id
+      receipt = Receipt.query.get(int(receipt_id) - 10000)
+      # Generate and save the receipt to a temporary folder
+      generate_and_save_receipt(receipt)
+    # Send the file to the user
+    return send_from_directory(app.config["RECEIPT_FOLDER"], filename=filename, as_attachment=True)
   except FileNotFoundError:
     abort(404)

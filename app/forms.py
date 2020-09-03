@@ -1,10 +1,10 @@
 from flask_wtf import FlaskForm
-from wtforms import Form, FieldList, FormField, IntegerField, StringField, PasswordField, SubmitField, BooleanField
-from wtforms.fields.html5 import EmailField
+from wtforms import Form, FieldList, FormField, IntegerField, StringField, PasswordField, SubmitField, BooleanField, SelectField
+from wtforms.fields.html5 import EmailField, DateField
 from wtforms.validators import DataRequired, Length, Email, EqualTo
 from app.models import User
 
-# Registration Form
+# User Registration Form
 class RegistrationForm(FlaskForm):
   username = StringField("Username", validators=[DataRequired(), Length(min=2, max=20)])
   email = EmailField("Email", validators=[DataRequired(), Email()])
@@ -24,12 +24,28 @@ class RegistrationForm(FlaskForm):
     if user:
       raise ValidationError("Email already exists! Please choose a different one.")
 
-# Login Form
+# User Login Form
 class LoginForm(FlaskForm):
   email = EmailField("Email", validators=[DataRequired(), Email()])
   password = PasswordField("Password", validators=[DataRequired()])
   remember = BooleanField("Remember Me")
   submit = SubmitField("Login")
+
+# Client Registration Form
+class NewClientForm(FlaskForm):
+  name = StringField("Client Name", validators=[DataRequired()])
+  business = StringField("Client Business", validators=[DataRequired()])
+  email = EmailField("Client Email", validators=[DataRequired(), Email()])
+  address = StringField("Client Address", validators=[DataRequired()])
+  submit = SubmitField("Add Client")
+
+# Edit Client Form
+class EditClientForm(FlaskForm):
+  name = StringField("Client Name", validators=[DataRequired()])
+  business = StringField("Client Business", validators=[DataRequired()])
+  email = EmailField("Client Email", validators=[DataRequired(), Email()])
+  address = StringField("Client Address", validators=[DataRequired()])
+  submit = SubmitField("Edit Client")
 
 # Invoice Item Form
 class InvoiceItemForm(Form):
@@ -38,13 +54,17 @@ class InvoiceItemForm(Form):
 
 # Invoice Form
 class InvoiceForm(FlaskForm):
-  client_name = StringField("Client Name", validators=[DataRequired()])
-  client_business = StringField("Client Business", validators=[DataRequired()])
-  client_email = EmailField("Email", validators=[DataRequired(), Email()])
-  client_address = StringField("Client Address", validators=[DataRequired()])
+  client_id = SelectField("Select Client", coerce=int)
   invoice_items = FieldList(
     FormField(InvoiceItemForm),
     min_entries=1,
     max_entries=5
   )
-  submit = SubmitField("Add Invoice")
+  submit = SubmitField("Generate Invoice")
+
+# Receipt Form
+class ReceiptForm(FlaskForm):
+  client_id = SelectField("Select Client", coerce=int)
+  invoice_id = SelectField("Select Invoice", coerce=int)
+  payment_date = DateField("Payment Date", validators=[DataRequired()])
+  submit = SubmitField("Generate Receipt")

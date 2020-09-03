@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1 class="text-center my-5 text-info">Receipt List</h1>
+
+<a href="{{ url_for('new_receipt') }}" class="btn btn-sm btn-info mb-4">New Receipt</a>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Receipt ID</th>
+      <th>Invoice ID</th>
+      <th>Client Name</th>
+      <th>Issue Date</th>
+      <th>Created By</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for receipt in data.receipts %}
+    <tr>
+      <td>{{ receipt.id }}</td>
+      <td>{{ receipt.invoice.id + 10000 }}</td>
+      <td>{{ receipt.client.name }}</td>
+      <td>{{ receipt.issue_date.strftime("%B %d, %Y") }}</td>
+      <td>{{ receipt.user.username }}</td>
+      <td><a href="{{ url_for('download_receipt', receipt_id=receipt.id) }}" class="btn btn-info btn-sm">Download Receipt</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

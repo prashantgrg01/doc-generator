@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<section class="container">
+  <h1 class="text-center my-5 text-info">New Receipt</h1>
+  <form method="POST" action="" style="max-width: 30rem; margin: auto">
+    {{ data.form.hidden_tag() }}
+    <fieldset class="form-group p-4" style="border: 1px solid #ddd">
+      <div class="form-group">
+        <!-- Show client_id field label -->
+        {{ data.form.client_id.label(class="form-control-label") }}
+        <!-- Show client_id field -->
+        {% if data.form.client_id.errors %}
+          {{ data.form.client_id(class="form-control is-invalid") }}
+          <div class="invalid-feedback">
+            {% for error in data.form.client_id.errors %}
+              <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ data.form.client_id(class="form-control") }}
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <!-- Show invoice_id field label -->
+        {{ data.form.invoice_id.label(class="form-control-label") }}
+        <!-- Show invoice_id field -->
+        {% if data.form.invoice_id.errors %}
+          {{ data.form.invoice_id(class="form-control is-invalid") }}
+          <div class="invalid-feedback">
+            {% for error in data.form.invoice_id.errors %}
+              <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ data.form.invoice_id(class="form-control") }}
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <!-- Show payment date field label -->
+        {{ data.form.payment_date.label(class="form-control-label") }}
+        <!-- Show payment date field -->
+        {% if data.form.payment_date.errors %}
+          {{ data.form.payment_date(class="form-control is-invalid") }}
+          <div class="invalid-feedback">
+            {% for error in data.form.payment_date.errors %}
+              <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ data.form.payment_date(class="form-control") }}
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <!-- Show submit field -->
+        {{ data.form.submit(class="form-control btn-info") }}
+      </div>
+    </fieldset>
+  </form>
+</section>
+
+<script>
+  // Function to populate the invoice options based on the selected client id
+  function fetchInvoiceOptions(client_id) {
+    let get_invoice_options = fetch("http://localhost:5000/api/client/" + client_id.toString() + "/invoices");
+    get_invoice_options.then(res => res.json())
+    .then(data => {
+      // Grab the select invoice field
+      select_invoice_field = document.querySelector("#invoice_id");
+      // Clear all the options
+      select_invoice_field.innerHTML = "";
+      // For each invoice field option, create the option element for it and append it to the select invoice field
+      data.options.forEach(item => {
+        invoice_option = document.createElement("option");
+        invoice_option.setAttribute("value", item.id);
+        invoice_option.innerText = item.label;
+        select_invoice_field.appendChild(invoice_option);
+      });
+    });
+  }
+  
+  // Function to handle the client selection changes
+  function selectClientHandler(e) {
+    client_id = e.target.value;
+    fetchInvoiceOptions(client_id);
+  }
+
+  // Grab the select client field
+  select_client_field = document.querySelector("#client_id");
+  // Attach a handler function for the client selection changed event
+  select_client_field.addEventListener("change", selectClientHandler);
+  // Intialize the invoice options for the selected client during the first page load
+  fetchInvoiceOptions(select_client_field.value);
+</script>
+{% endblock %}
